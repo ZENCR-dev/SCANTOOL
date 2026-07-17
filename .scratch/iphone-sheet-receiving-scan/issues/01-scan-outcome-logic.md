@@ -4,14 +4,14 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] trim 后空串 → 忽略，清单不变
-- [ ] 无命中 → 不在清单，清单不变
-- [ ] 命中且已是已收 → 已收过，清单不变
-- [ ] 命中且未收 → 新已收，该行变为已收；统计已收数/总数正确
-- [ ] 判定规则与已确认原型一致（见下），并升格为正式可测模块（非 throwaway TUI 依赖）
+- [x] trim 后空串 → 忽略，清单不变
+- [x] 无命中 → 不在清单，清单不变
+- [x] 命中且已是已收 → 已收过，清单不变
+- [x] 命中且未收 → 新已收，该行变为已收；统计已收数/总数正确
+- [x] 判定规则与已确认原型一致，并升格为正式可测模块
 
-```text
-（来自原型）applyScan: empty→忽略; miss→不在清单; 已收→已收过; else→新已收
-```
+## Answer
+
+已实现 `src/receiving/scan-outcome.js` + `scan-outcome.test.js`；`npm test` 覆盖上述行为。

@@ -4,7 +4,7 @@
  * Run: node src/receiving/prototype-scan-outcome/tui.js
  */
 import readline from 'node:readline';
-import { applyScan, initialState, stats } from './logic.js';
+import { applyScan, initialState, stats } from '../scan-outcome.js';
 
 const bold = (s) => `\x1b[1m${s}\x1b[0m`;
 const dim = (s) => `\x1b[2m${s}\x1b[0m`;

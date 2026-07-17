@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Env & local secrets
+.env
+.env.*
+!.env.example
+.clasprc.json
+.clasp.json
+
+# Logs & coverage
+*.log
+npm-debug.log*
+coverage/
+
+# Local web config with deployed Web App URL
+web/config.js
+
+# Build / clasp push staging (if used)
+dist/
+.gas-build/

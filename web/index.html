@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>收货扫码</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #111;
+      color: #f5f5f5;
+      min-height: 100dvh;
+    }
+    header { padding: 12px 16px; background: #1a1a1a; }
+    header h1 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+    .panel { padding: 12px 16px; }
+    label { display: block; font-size: 0.85rem; opacity: 0.8; margin-bottom: 4px; }
+    input, button {
+      font: inherit;
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #222;
+      color: inherit;
+    }
+    button { margin-top: 8px; background: #2a6; border-color: #2a6; color: #fff; font-weight: 600; }
+    button.secondary { background: #333; border-color: #555; }
+    button:disabled { opacity: 0.5; }
+    #flash {
+      margin: 12px 16px;
+      padding: 24px 16px;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 700;
+      min-height: 88px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #222;
+    }
+    #flash.ok { background: #1b5e20; }
+    #flash.dup { background: #e65100; }
+    #flash.miss { background: #37474f; }
+    #flash.err { background: #b71c1c; }
+    #stats { padding: 0 16px 8px; font-size: 1.25rem; }
+    #reader { width: 100%; max-width: 480px; margin: 0 auto; }
+    #pending { padding: 8px 16px 24px; font-size: 0.9rem; }
+    #pending details { background: #1a1a1a; padding: 8px 12px; border-radius: 8px; }
+    #pending ul { margin: 8px 0 0; padding-left: 1.2em; max-height: 160px; overflow: auto; }
+    .hint { font-size: 0.8rem; opacity: 0.65; margin-top: 8px; }
+    .row { display: flex; gap: 8px; }
+    .row button { flex: 1; }
+  </style>
+</head>
+<body>
+  <header><h1>收货扫码（粗糙 MVP）</h1></header>
+
+  <div class="panel" id="mount-panel">
+    <label for="apiUrl">Apps Script Web App URL</label>
+    <input id="apiUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" />
+    <label for="sheetUrl" style="margin-top:12px">收货表链接或 ID</label>
+    <input id="sheetUrl" type="text" placeholder="https://docs.google.com/spreadsheets/d/..." />
+    <button id="btnConnect" type="button">挂载</button>
+    <p class="hint">摄像头不在 Google 页内；本页须 HTTPS。部署说明见仓库 docs/deploy.md</p>
+  </div>
+
+  <div id="flash">等待挂载</div>
+  <div id="stats">已收 — / 共 —</div>
+
+  <div class="panel">
+    <div id="reader"></div>
+    <div class="row">
+      <button id="btnStart" class="secondary" type="button" disabled>开始扫码</button>
+      <button id="btnStop" class="secondary" type="button" disabled>停止</button>
+    </div>
+  </div>
+
+  <div id="pending">
+    <details>
+      <summary>未收列表</summary>
+      <ul id="pendingList"></ul>
+    </details>
+  </div>
+
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

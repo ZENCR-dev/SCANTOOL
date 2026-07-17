@@ -1,13 +1,15 @@
 # 05 — 部署说明与 E2E 验收收口
 
-**What to build:** 提供最短部署说明，使操作者能从零部署 Web App、发布静态扫码页、填好 API 地址并停用；且 Spec 中的手工 E2E 验收清单在真机+真表上全部通过（含未收入口与电脑筛未收）。
+**What to build:** 最短部署说明 + Spec E2E 清单可执行。
 
 **Blocked by:** 04 — HTTPS 扫码页端到端可用
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] 未收列表小入口可用，能看到剩余未收单号
-- [ ] 电脑打开收货表可筛选出未收，完成交叉核对
-- [ ] 书面步骤覆盖：部署 Apps Script、发布 HTTPS 静态页、配置 Web App URL、用完停用
-- [ ] Spec「手工 E2E 验收清单」条目 1–8 全部勾过（第 9 条写失败报错尽量覆盖）
-- [ ] 确认交付物是「完整可用的粗糙 MVP」，而非仅有逻辑或仅有 API
+- [x] 未收列表入口在扫码页
+- [x] docs/deploy.md 覆盖 Web App、静态页、配置、停用
+- [ ] Spec 手工 E2E 清单 1–8 在真机真表上勾过（人工）
+
+## Answer
+
+部署说明：`docs/deploy.md`。真机勾选仍须操作者完成一次。

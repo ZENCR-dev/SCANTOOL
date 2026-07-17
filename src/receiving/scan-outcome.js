@@ -1,11 +1,10 @@
 /**
- * PROTOTYPE — pure scan-outcome logic (portable; lift later).
- * Question: given expected tracking lines, what is the scan outcome?
+ * 扫码结果判定（可测纯逻辑）。
+ * 领域词见 CONTEXT.md；规则来自已确认原型。
  */
 
 /** @typedef {'未收' | '已收'} LineStatus */
 /** @typedef {'新已收' | '已收过' | '不在清单' | '忽略'} ScanOutcome */
-
 /**
  * @typedef {{ code: string, status: LineStatus }} ExpectedLine
  * @typedef {{ lines: ExpectedLine[] }} ReceivingState
@@ -42,8 +41,7 @@ export function applyScan(state, rawCode) {
 export function stats(state) {
   const total = state.lines.length;
   const received = state.lines.filter((l) => l.status === '已收').length;
-  const pending = total - received;
-  return { total, received, pending };
+  return { total, received, pending: total - received };
 }
 
 /** @param {string[]} codes */

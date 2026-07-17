@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "node --test src/receiving/*.test.js",
     "prototype:scan-outcome": "node src/receiving/prototype-scan-outcome/tui.js"
   }
 }
