@@ -152,8 +152,22 @@
       setFlash('请先挂载', 'err');
       return;
     }
+    if (!window.isSecureContext) {
+      setFlash(
+        '当前不是 HTTPS 安全上下文，浏览器禁止摄像头。请用 GitHub Pages / Cloudflare Pages 等 HTTPS 打开本页，不要用 http://局域网IP 或 file://',
+        'err'
+      );
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setFlash(
+        '本浏览器无摄像头 API。请用 iPhone Safari，并通过 HTTPS 打开扫码页',
+        'err'
+      );
+      return;
+    }
     if (!window.Html5Qrcode) {
-      setFlash('扫码库未加载', 'err');
+      setFlash('扫码库未加载（检查网络能否访问 unpkg.com）', 'err');
       return;
     }
     scanner = new Html5Qrcode('reader');
@@ -176,18 +190,37 @@
         { facingMode: 'environment' },
         {
           fps: 8,
-          qrbox: { width: 280, height: 120 },
-          aspectRatio: 1.5,
+          qrbox: { width: 280, height: 160 },
+          aspectRatio: 1.333,
           ...(formats ? { formatsToSupport: formats } : {}),
+          experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+          videoConstraints: {
+            facingMode: 'environment',
+            // iOS Safari：内联播放，避免全屏抢焦点
+            // html5-qrcode 会落到 <video>；部分版本需手动补 playsinline
+          },
         },
         (decoded) => {
           onScan(decoded);
         },
         () => {}
       );
+      const video = document.querySelector('#reader video');
+      if (video) {
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('webkit-playsinline', 'true');
+        video.muted = true;
+      }
       setFlash('请对准一维条码', '');
     } catch (err) {
-      setFlash('无法启动摄像头：' + (err.message || err), 'err');
+      const msg = String(err && err.message ? err.message : err);
+      let tip = msg;
+      if (/streaming not supported|NotAllowedError|secure/i.test(msg)) {
+        tip =
+          msg +
+          ' → 请确认地址栏是 https://（不是 http:// 或 file://），并用 Safari 打开';
+      }
+      setFlash('无法启动摄像头：' + tip, 'err');
       el.btnStart.disabled = false;
       el.btnStop.disabled = true;
       scanner = null;

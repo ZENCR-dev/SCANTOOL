@@ -66,7 +66,7 @@
     <label for="sheetUrl" style="margin-top:12px">收货表链接或 ID</label>
     <input id="sheetUrl" type="text" placeholder="https://docs.google.com/spreadsheets/d/..." />
     <button id="btnConnect" type="button">挂载</button>
-    <p class="hint">摄像头不在 Google 页内；本页须 HTTPS。部署说明见仓库 docs/deploy.md</p>
+    <p class="hint">本页地址栏必须是 <strong>https://</strong>。用 http://局域网IP 或 file:// 时：挂载可能成功，但摄像头会被浏览器禁止。</p>
   </div>
 
   <div id="flash">等待挂载</div>
