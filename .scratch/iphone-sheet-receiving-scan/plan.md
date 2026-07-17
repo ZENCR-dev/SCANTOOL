@@ -29,3 +29,9 @@ Parent spec: [spec.md](./spec.md)
 - [docs/constraints.md](../../docs/constraints.md)
 - [ADR-0001](../../docs/adr/0001-apps-script-spa-sheet-ledger.md)
 - [ADR-0002](../../docs/adr/0002-camera-outside-apps-script-iframe.md)
+- [ADR-0003](../../docs/adr/0003-commit-api-url-and-batch-presets.md)
+
+## 后续
+
+- 预置批次：[spec-preset-batches.md](./spec-preset-batches.md) → issues 06–07  
+- 同码闩反馈：[spec-scan-feedback-latch.md](./spec-scan-feedback-latch.md) → [issue 08](./issues/08-same-code-latch-feedback.md)

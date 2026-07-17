@@ -18,7 +18,7 @@
     header h1 { margin: 0; font-size: 1.1rem; font-weight: 600; }
     .panel { padding: 12px 16px; }
     label { display: block; font-size: 0.85rem; opacity: 0.8; margin-bottom: 4px; }
-    input, button {
+    input, button, select {
       font: inherit;
       width: 100%;
       padding: 12px;
@@ -42,11 +42,13 @@
       align-items: center;
       justify-content: center;
       background: #222;
+      white-space: pre-line;
     }
     #flash.ok { background: #1b5e20; }
     #flash.dup { background: #e65100; }
     #flash.miss { background: #37474f; }
     #flash.err { background: #b71c1c; }
+    #flash.wait { background: #1565c0; }
     #stats { padding: 0 16px 8px; font-size: 1.25rem; }
     #reader { width: 100%; max-width: 480px; margin: 0 auto; }
     #pending { padding: 8px 16px 24px; font-size: 0.9rem; }
@@ -55,18 +57,26 @@
     .hint { font-size: 0.8rem; opacity: 0.65; margin-top: 8px; }
     .row { display: flex; gap: 8px; }
     .row button { flex: 1; }
+    details.advanced { margin-top: 12px; font-size: 0.85rem; opacity: 0.85; }
   </style>
 </head>
 <body>
-  <header><h1>收货扫码（粗糙 MVP）</h1></header>
+  <header><h1>收货扫码</h1></header>
 
   <div class="panel" id="mount-panel">
-    <label for="apiUrl">Apps Script Web App URL</label>
-    <input id="apiUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" />
-    <label for="sheetUrl" style="margin-top:12px">收货表链接或 ID</label>
-    <input id="sheetUrl" type="text" placeholder="https://docs.google.com/spreadsheets/d/..." />
+    <label for="batchSelect">选择批次</label>
+    <select id="batchSelect"></select>
+    <div id="customSheetWrap" hidden style="margin-top:12px">
+      <label for="sheetUrl">自定义收货表链接或 ID</label>
+      <input id="sheetUrl" type="text" placeholder="https://docs.google.com/spreadsheets/d/..." />
+    </div>
     <button id="btnConnect" type="button">挂载</button>
-    <p class="hint">本页地址栏必须是 <strong>https://</strong>。用 http://局域网IP 或 file:// 时：挂载可能成功，但摄像头会被浏览器禁止。</p>
+    <details class="advanced">
+      <summary>高级：Web App URL</summary>
+      <label for="apiUrl" style="margin-top:8px">Apps Script Web App URL</label>
+      <input id="apiUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" />
+    </details>
+    <p class="hint">地址栏须为 <strong>https://</strong>。主路径：选批次 → 挂载 → 扫码。</p>
   </div>
 
   <div id="flash">等待挂载</div>
@@ -89,6 +99,6 @@
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="./config.js"></script>
-  <script src="./app.js"></script>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>

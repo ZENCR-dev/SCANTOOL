@@ -15,7 +15,8 @@ Status: ready-for-agent
 3. 扫码页调用 **Apps Script Web App API** 写回收货表：命中未收 → **已收** + **扫码时间**；**已收过** / **不在清单** 可区分提示且不改表。
 4. 电脑打开同一张收货表筛选未收，完成一人交叉核对。
 
-> 可行性要点：HtmlService 沙箱会拦截摄像头；故摄像头与 API 分离（ADR-0002）。Sheet 仍为唯一台账（ADR-0001）。
+> 挂载 UX 更新见 [spec-preset-batches.md](./spec-preset-batches.md)（预置 API + 批次下拉）。本文件仍描述扫码核心与 E2E 清单。
+
 
 ## User Stories
 

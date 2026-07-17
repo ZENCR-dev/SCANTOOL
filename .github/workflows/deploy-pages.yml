@@ -20,17 +20,22 @@ concurrency:
 jobs:
   deploy:
     environment:
-      name: github-pages
+      name: 'github-pages'
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare site without secrets
+      - name: Prepare site
         run: |
-          cp web/config.example.js web/config.js
           touch web/.nojekyll
+          # 使用仓库内已提交的 config.js；若缺失则用 example 占位
+          if [ ! -f web/config.js ]; then
+            cp web/config.example.js web/config.js
+          fi
+          # 确保同码闩模块随站点发布
+          test -f web/scan-feedback.js
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

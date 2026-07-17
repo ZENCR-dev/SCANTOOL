@@ -19,9 +19,9 @@ node_modules/
 npm-debug.log*
 coverage/
 
-# Local web config with deployed Web App URL
-web/config.js
-
 # Build / clasp push staging (if used)
 dist/
 .gas-build/
+
+# NOTE: web/config.js 含默认 apiUrl 与批次列表，按 ADR-0003 应提交进仓库。
+# 勿把 clasp 凭证或无关 .env 提交上来。
