@@ -1,0 +1,8 @@
+{
+  "name": "scan-tool",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prototype:scan-outcome": "node src/receiving/prototype-scan-outcome/tui.js"
+  }
+}
