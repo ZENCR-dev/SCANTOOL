@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyScan, initialState, stats } from './scan-outcome.js';
+import { applyScan, initialState, revertReceived, stats } from './scan-outcome.js';
 
 describe('扫码结果判定', () => {
   it('trim 后空串 → 忽略，清单不变', () => {
@@ -34,5 +34,14 @@ describe('扫码结果判定', () => {
     assert.equal(stats(result.state).received, 1);
     assert.equal(stats(result.state).total, 2);
     assert.equal(stats(result.state).pending, 1);
+  });
+
+  it('写失败回滚：已收码改回未收', () => {
+    let state = initialState(['A1', 'B2']);
+    state = applyScan(state, 'A1').state;
+    state = revertReceived(state, 'A1');
+    assert.equal(stats(state).received, 0);
+    assert.equal(state.lines.find((l) => l.code === 'A1').status, '未收');
+    assert.equal(state.lines.find((l) => l.code === 'B2').status, '未收');
   });
 });

@@ -95,6 +95,7 @@ Settings → Pages 顶部的 live URL，例如：
 1. [script.google.com](https://script.google.com) 新建项目，粘贴 `apps-script/Code.gs`  
 2. 部署为网页应用：执行身份 **我**，访问 **任何人**  
 3. 把得到的 `…/exec` 写入 `web/config.js` 的 `apiUrl` 并提交  
+4. **以后改了 `Code.gs`（如 connect 增加 sheetTitle/lines）**：在编辑器里整文件覆盖粘贴 → **部署 → 管理部署 → 编辑 → 新版本**（勿只保存不发版）
 
 ---
 
@@ -109,9 +110,9 @@ Settings → Pages 顶部的 live URL，例如：
 ## 5. 收货日（真机）
 
 1. Safari 打开 Pages 的 **https** 扫码页  
-2. **下拉选择批次** → **挂载**  
+2. **下拉选择批次** → **挂载** → 进入扫码主屏（顶栏：表文件名 · 已收 x/y · 换批）  
 3. **开始扫码** → 允许摄像头  
-4. 绿 = 新已收，橙 = 已收过，灰 = 不在清单  
+4. 绿 = 新已收（立刻反馈，后台写表），橙 = 已收过，灰 = 不在清单；写表失败会红字并回滚  
 5. 电脑筛空/`未收` = 漏收  
 6. 全部收完：Apps Script → **停用** 网页应用  
 

@@ -14,8 +14,28 @@
       color: #f5f5f5;
       min-height: 100dvh;
     }
-    header { padding: 12px 16px; background: #1a1a1a; }
-    header h1 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+    header { padding: 10px 16px; background: #1a1a1a; }
+    header h1 { margin: 0; font-size: 1rem; font-weight: 600; }
+    #session-bar {
+      display: none;
+      padding: 10px 16px;
+      background: #222;
+      border-bottom: 1px solid #333;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    #session-bar.visible { display: flex; }
+    #sessionTitle { flex: 1; font-weight: 600; font-size: 0.95rem; min-width: 0; word-break: break-all; }
+    #sessionStats { font-size: 0.9rem; opacity: 0.9; white-space: nowrap; }
+    #btnSwapBatch {
+      width: auto;
+      margin: 0;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      background: #444;
+      border-color: #555;
+    }
     .panel { padding: 12px 16px; }
     label { display: block; font-size: 0.85rem; opacity: 0.8; margin-bottom: 4px; }
     input, button, select {
@@ -32,12 +52,12 @@
     button:disabled { opacity: 0.5; }
     #flash {
       margin: 12px 16px;
-      padding: 24px 16px;
+      padding: 28px 16px;
       border-radius: 12px;
       text-align: center;
-      font-size: 1.6rem;
+      font-size: 1.75rem;
       font-weight: 700;
-      min-height: 88px;
+      min-height: 100px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -49,19 +69,25 @@
     #flash.miss { background: #37474f; }
     #flash.err { background: #b71c1c; }
     #flash.wait { background: #1565c0; }
-    #stats { padding: 0 16px 8px; font-size: 1.25rem; }
-    #reader { width: 100%; max-width: 480px; margin: 0 auto; }
+    #reader { width: 100%; margin: 0 auto; }
     #pending { padding: 8px 16px 24px; font-size: 0.9rem; }
     #pending details { background: #1a1a1a; padding: 8px 12px; border-radius: 8px; }
-    #pending ul { margin: 8px 0 0; padding-left: 1.2em; max-height: 160px; overflow: auto; }
+    #pending ul { margin: 8px 0 0; padding-left: 1.2em; max-height: 120px; overflow: auto; }
     .hint { font-size: 0.8rem; opacity: 0.65; margin-top: 8px; }
-    .row { display: flex; gap: 8px; }
-    .row button { flex: 1; }
+    .row { display: flex; gap: 8px; padding: 0 16px 12px; }
+    .row button { flex: 1; margin-top: 0; }
     details.advanced { margin-top: 12px; font-size: 0.85rem; opacity: 0.85; }
+    body.scanning #mount-panel { display: none; }
   </style>
 </head>
 <body>
   <header><h1>收货扫码</h1></header>
+
+  <div id="session-bar">
+    <div id="sessionTitle">—</div>
+    <div id="sessionStats">已收 — / —</div>
+    <button id="btnSwapBatch" type="button" class="secondary">换批</button>
+  </div>
 
   <div class="panel" id="mount-panel">
     <label for="batchSelect">选择批次</label>
@@ -76,18 +102,15 @@
       <label for="apiUrl" style="margin-top:8px">Apps Script Web App URL</label>
       <input id="apiUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" />
     </details>
-    <p class="hint">地址栏须为 <strong>https://</strong>。主路径：选批次 → 挂载 → 扫码。</p>
+    <p class="hint">地址栏须为 <strong>https://</strong>。挂载后进入扫码主屏。</p>
   </div>
 
   <div id="flash">等待挂载</div>
-  <div id="stats">已收 — / 共 —</div>
 
-  <div class="panel">
-    <div id="reader"></div>
-    <div class="row">
-      <button id="btnStart" class="secondary" type="button" disabled>开始扫码</button>
-      <button id="btnStop" class="secondary" type="button" disabled>停止</button>
-    </div>
+  <div id="reader"></div>
+  <div class="row">
+    <button id="btnStart" class="secondary" type="button" disabled>开始扫码</button>
+    <button id="btnStop" class="secondary" type="button" disabled>停止</button>
   </div>
 
   <div id="pending">

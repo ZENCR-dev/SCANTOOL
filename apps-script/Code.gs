@@ -46,12 +46,24 @@ function connect_(sheetUrlOrId) {
     return { ok: false, error: '挂载校验失败', errors: validated.errors };
   }
   var s = computeStats_(validated.lines);
+  var ss = SpreadsheetApp.openById(sheetId);
   return {
     ok: true,
     sheetId: sheetId,
+    sheetTitle: ss.getName(),
     total: s.total,
     received: s.received,
     pending: s.pending,
+    lines: validated.lines.map(function (l) {
+      return { code: l.code, status: l.status };
+    }),
+    pendingCodes: validated.lines
+      .filter(function (l) {
+        return l.status === '未收';
+      })
+      .map(function (l) {
+        return l.code;
+      }),
   };
 }
 

@@ -1,6 +1,8 @@
-import { planScan, afterApiOutcome } from './scan-feedback.js';
+import { planScan } from './scan-feedback.js';
+import { applyScan, revertReceived, stats } from './scan-outcome.js';
 
-const COOLDOWN_MS = 1500;
+const COOLDOWN_MS = 500;
+const SCAN_FPS = 15;
 const CUSTOM_VALUE = '__custom__';
 
 const el = {
@@ -11,9 +13,13 @@ const el = {
   btnConnect: document.getElementById('btnConnect'),
   btnStart: document.getElementById('btnStart'),
   btnStop: document.getElementById('btnStop'),
+  btnSwapBatch: document.getElementById('btnSwapBatch'),
   flash: document.getElementById('flash'),
-  stats: document.getElementById('stats'),
   pendingList: document.getElementById('pendingList'),
+  sessionBar: document.getElementById('session-bar'),
+  sessionTitle: document.getElementById('sessionTitle'),
+  sessionStats: document.getElementById('sessionStats'),
+  mountPanel: document.getElementById('mount-panel'),
 };
 
 const cfg = window.RECEIVING_CONFIG || {
@@ -22,23 +28,27 @@ const cfg = window.RECEIVING_CONFIG || {
 };
 
 let sheetId = null;
+let sheetTitle = '';
 let coolingUntil = 0;
 let scanner = null;
 let latchedCode = '';
-let scanInFlight = false;
+/** @type {{ lines: { code: string, status: string }[] }} */
+let localState = { lines: [] };
+const pendingWrites = new Set();
 
 function setFlash(text, kind) {
   el.flash.textContent = text;
   el.flash.className = kind || '';
 }
 
-function setStats(data) {
-  if (!data) {
-    el.stats.textContent = '已收 — / 共 —';
-    return;
-  }
-  el.stats.textContent = `已收 ${data.received} / 共 ${data.total}`;
-  const codes = data.pendingCodes || [];
+function pendingCodesFromState() {
+  return localState.lines.filter((l) => l.status === '未收').map((l) => l.code);
+}
+
+function refreshStatsUi() {
+  const s = stats(localState);
+  el.sessionStats.textContent = `已收 ${s.received} / ${s.total}`;
+  const codes = pendingCodesFromState();
   el.pendingList.innerHTML =
     codes.map((c) => `<li>${escapeHtml(c)}</li>`).join('') || '<li>（无）</li>';
 }
@@ -48,6 +58,18 @@ function escapeHtml(s) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+function enterScanScreen() {
+  document.body.classList.add('scanning');
+  el.sessionBar.classList.add('visible');
+  el.sessionTitle.textContent = sheetTitle || '已挂载';
+  refreshStatsUi();
+}
+
+function leaveScanScreen() {
+  document.body.classList.remove('scanning');
+  el.sessionBar.classList.remove('visible');
 }
 
 function fillBatches() {
@@ -67,8 +89,7 @@ function fillBatches() {
 }
 
 function syncCustomVisibility() {
-  const isCustom = el.batchSelect.value === CUSTOM_VALUE;
-  el.customSheetWrap.hidden = !isCustom;
+  el.customSheetWrap.hidden = el.batchSelect.value !== CUSTOM_VALUE;
 }
 
 function selectedSheetUrl() {
@@ -126,10 +147,36 @@ function showOutcome(display, code) {
   } else if (display === '不在清单') {
     setFlash('不在清单\n' + code, 'miss');
     beep(330, 60);
-  } else if (display === '识别中') {
-    setFlash('识别中…\n' + code, 'wait');
   } else if (display) {
     setFlash(String(display), '');
+  }
+}
+
+function revertLocalReceived(code) {
+  localState = revertReceived(localState, code);
+  if (latchedCode === code) latchedCode = '';
+  refreshStatsUi();
+}
+
+async function persistNewReceive(code) {
+  if (pendingWrites.has(code)) return;
+  pendingWrites.add(code);
+  try {
+    const data = await api({ action: 'scan', sheetId, code });
+    if (!data.ok || data.outcome !== '新已收') {
+      revertLocalReceived(code);
+      setFlash(
+        (data && data.error) || '写表失败，已撤销本地已收\n' + code,
+        'err'
+      );
+      beep(200, 200);
+    }
+  } catch (err) {
+    revertLocalReceived(code);
+    setFlash(String(err.message || err) + '\n' + code, 'err');
+    beep(200, 200);
+  } finally {
+    pendingWrites.delete(code);
   }
 }
 
@@ -159,14 +206,20 @@ el.btnConnect.addEventListener('click', async () => {
       setFlash(data.error + (detail ? '：' + detail : ''), 'err');
       sheetId = null;
       el.btnStart.disabled = true;
+      leaveScanScreen();
       return;
     }
     sheetId = data.sheetId;
-    setFlash('挂载成功', 'ok');
-    setStats(data);
+    sheetTitle = data.sheetTitle || '已挂载';
+    localState = {
+      lines: (data.lines || []).map((l) => ({
+        code: l.code,
+        status: l.status === '已收' ? '已收' : '未收',
+      })),
+    };
+    setFlash('挂载成功\n点「开始扫码」', 'ok');
     el.btnStart.disabled = false;
-    const st = await api({ action: 'stats', sheetId });
-    if (st.ok) setStats(st);
+    enterScanScreen();
   } catch (err) {
     setFlash(String(err.message || err), 'err');
   } finally {
@@ -174,45 +227,54 @@ el.btnConnect.addEventListener('click', async () => {
   }
 });
 
-async function onScan(decoded) {
+el.btnSwapBatch.addEventListener('click', async () => {
+  if (scanner) {
+    try {
+      await scanner.stop();
+      await scanner.clear();
+    } catch (_) {}
+    scanner = null;
+  }
+  sheetId = null;
+  sheetTitle = '';
+  localState = { lines: [] };
+  latchedCode = '';
+  el.btnStart.disabled = true;
+  el.btnStop.disabled = true;
+  leaveScanScreen();
+  setFlash('请重新选择批次并挂载', '');
+});
+
+function onScan(decoded) {
   const now = Date.now();
   if (now < coolingUntil) return;
-  if (!sheetId || scanInFlight) return;
+  if (!sheetId) return;
 
   const planned = planScan(latchedCode, decoded);
-  latchedCode = planned.nextLatch;
-
   if (!planned.code) return;
 
   if (!planned.callApi) {
-    if (planned.display === '新已收') {
-      showOutcome('新已收', planned.code);
-    }
+    // 同码闩：保持新已收展示，不写表
+    showOutcome('新已收', planned.code);
     return;
   }
 
-  showOutcome('识别中', planned.code);
-  scanInFlight = true;
-  try {
-    const data = await api({ action: 'scan', sheetId, code: planned.code });
-    if (!data.ok) {
-      setFlash(data.error || '写表失败', 'err');
-      beep(200, 200);
-      latchedCode = '';
-      return;
-    }
-    const applied = afterApiOutcome(planned.code, data.outcome);
-    latchedCode = applied.nextLatch;
-    if (data.outcome === '新已收' || data.outcome === '已收过') {
-      coolingUntil = Date.now() + COOLDOWN_MS;
-    }
-    showOutcome(applied.display, planned.code);
-    setStats(data);
-  } catch (err) {
-    setFlash(String(err.message || err), 'err');
-    latchedCode = '';
-  } finally {
-    scanInFlight = false;
+  // 换码：先清闩再本地判定
+  latchedCode = '';
+  const result = applyScan(localState, planned.code);
+  localState = result.state;
+  refreshStatsUi();
+
+  if (result.outcome === '忽略') return;
+
+  showOutcome(result.outcome, result.code);
+
+  if (result.outcome === '新已收') {
+    latchedCode = result.code;
+    coolingUntil = Date.now() + COOLDOWN_MS;
+    void persistNewReceive(result.code);
+  } else if (result.outcome === '已收过') {
+    coolingUntil = Date.now() + COOLDOWN_MS;
   }
 }
 
@@ -222,18 +284,15 @@ el.btnStart.addEventListener('click', async () => {
     return;
   }
   if (!window.isSecureContext) {
-    setFlash(
-      '当前不是 HTTPS 安全上下文，浏览器禁止摄像头。请用 GitHub Pages 等 HTTPS 打开本页',
-      'err'
-    );
+    setFlash('请用 HTTPS（如 GitHub Pages）打开本页', 'err');
     return;
   }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    setFlash('本浏览器无摄像头 API。请用 iPhone Safari + HTTPS', 'err');
+    setFlash('本浏览器无摄像头 API', 'err');
     return;
   }
   if (!window.Html5Qrcode) {
-    setFlash('扫码库未加载（检查网络能否访问 unpkg.com）', 'err');
+    setFlash('扫码库未加载', 'err');
     return;
   }
   scanner = new Html5Qrcode('reader');
@@ -256,16 +315,14 @@ el.btnStart.addEventListener('click', async () => {
     await scanner.start(
       { facingMode: 'environment' },
       {
-        fps: 8,
+        fps: SCAN_FPS,
         qrbox: { width: 280, height: 160 },
         aspectRatio: 1.333,
         ...(formats ? { formatsToSupport: formats } : {}),
         experimentalFeatures: { useBarCodeDetectorIfSupported: true },
         videoConstraints: { facingMode: 'environment' },
       },
-      (decoded) => {
-        onScan(decoded);
-      },
+      (decoded) => onScan(decoded),
       () => {}
     );
     const video = document.querySelector('#reader video');
@@ -274,14 +331,10 @@ el.btnStart.addEventListener('click', async () => {
       video.setAttribute('webkit-playsinline', 'true');
       video.muted = true;
     }
-    setFlash('请对准一维条码', '');
+    setFlash('请对准条码', '');
   } catch (err) {
     const msg = String(err && err.message ? err.message : err);
-    let tip = msg;
-    if (/streaming not supported|NotAllowedError|secure/i.test(msg)) {
-      tip = msg + ' → 请确认地址栏是 https://，并用 Safari 打开';
-    }
-    setFlash('无法启动摄像头：' + tip, 'err');
+    setFlash('无法启动摄像头：' + msg, 'err');
     el.btnStart.disabled = false;
     el.btnStop.disabled = true;
     scanner = null;
