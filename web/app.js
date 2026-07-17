@@ -11,15 +11,14 @@ const el = {
   customSheetWrap: document.getElementById('customSheetWrap'),
   sheetUrl: document.getElementById('sheetUrl'),
   btnConnect: document.getElementById('btnConnect'),
-  btnStart: document.getElementById('btnStart'),
   btnStop: document.getElementById('btnStop'),
+  btnResume: document.getElementById('btnResume'),
   btnSwapBatch: document.getElementById('btnSwapBatch'),
   flash: document.getElementById('flash'),
   pendingList: document.getElementById('pendingList'),
   sessionBar: document.getElementById('session-bar'),
   sessionTitle: document.getElementById('sessionTitle'),
   sessionStats: document.getElementById('sessionStats'),
-  mountPanel: document.getElementById('mount-panel'),
 };
 
 const cfg = window.RECEIVING_CONFIG || {
@@ -60,15 +59,21 @@ function escapeHtml(s) {
     .replace(/>/g, '&gt;');
 }
 
+function setPaused(paused) {
+  document.body.classList.toggle('paused', paused);
+}
+
 function enterScanScreen() {
   document.body.classList.add('scanning');
   el.sessionBar.classList.add('visible');
   el.sessionTitle.textContent = sheetTitle || '已挂载';
+  el.sessionTitle.title = sheetTitle || '';
   refreshStatsUi();
 }
 
 function leaveScanScreen() {
   document.body.classList.remove('scanning');
+  setPaused(false);
   el.sessionBar.classList.remove('visible');
 }
 
@@ -180,54 +185,7 @@ async function persistNewReceive(code) {
   }
 }
 
-el.apiUrl.value = cfg.apiUrl || window.RECEIVING_API_URL || '';
-fillBatches();
-el.batchSelect.addEventListener('change', syncCustomVisibility);
-
-el.btnConnect.addEventListener('click', async () => {
-  el.btnConnect.disabled = true;
-  setFlash('挂载中…', 'wait');
-  latchedCode = '';
-  try {
-    const sheetUrl = selectedSheetUrl();
-    if (!sheetUrl) {
-      setFlash('请选择有表链接的批次，或填写自定义链接', 'err');
-      return;
-    }
-    const data = await api({ action: 'connect', sheetUrl });
-    if (!data.ok) {
-      const detail = (data.errors || [])
-        .map((e) => {
-          if (e.type === '非法状态') return `行${e.row} ${e.code} 状态=${e.value}`;
-          if (e.type === '重复单号') return `重复 ${e.code} 行${(e.rows || []).join(',')}`;
-          return JSON.stringify(e);
-        })
-        .join('；');
-      setFlash(data.error + (detail ? '：' + detail : ''), 'err');
-      sheetId = null;
-      el.btnStart.disabled = true;
-      leaveScanScreen();
-      return;
-    }
-    sheetId = data.sheetId;
-    sheetTitle = data.sheetTitle || '已挂载';
-    localState = {
-      lines: (data.lines || []).map((l) => ({
-        code: l.code,
-        status: l.status === '已收' ? '已收' : '未收',
-      })),
-    };
-    setFlash('挂载成功\n点「开始扫码」', 'ok');
-    el.btnStart.disabled = false;
-    enterScanScreen();
-  } catch (err) {
-    setFlash(String(err.message || err), 'err');
-  } finally {
-    el.btnConnect.disabled = false;
-  }
-});
-
-el.btnSwapBatch.addEventListener('click', async () => {
+async function stopScanner() {
   if (scanner) {
     try {
       await scanner.stop();
@@ -235,70 +193,33 @@ el.btnSwapBatch.addEventListener('click', async () => {
     } catch (_) {}
     scanner = null;
   }
-  sheetId = null;
-  sheetTitle = '';
-  localState = { lines: [] };
   latchedCode = '';
-  el.btnStart.disabled = true;
-  el.btnStop.disabled = true;
-  leaveScanScreen();
-  setFlash('请重新选择批次并挂载', '');
-});
-
-function onScan(decoded) {
-  const now = Date.now();
-  if (now < coolingUntil) return;
-  if (!sheetId) return;
-
-  const planned = planScan(latchedCode, decoded);
-  if (!planned.code) return;
-
-  if (!planned.callApi) {
-    // 同码闩：保持新已收展示，不写表
-    showOutcome('新已收', planned.code);
-    return;
-  }
-
-  // 换码：先清闩再本地判定
-  latchedCode = '';
-  const result = applyScan(localState, planned.code);
-  localState = result.state;
-  refreshStatsUi();
-
-  if (result.outcome === '忽略') return;
-
-  showOutcome(result.outcome, result.code);
-
-  if (result.outcome === '新已收') {
-    latchedCode = result.code;
-    coolingUntil = Date.now() + COOLDOWN_MS;
-    void persistNewReceive(result.code);
-  } else if (result.outcome === '已收过') {
-    coolingUntil = Date.now() + COOLDOWN_MS;
-  }
+  setPaused(true);
 }
 
-el.btnStart.addEventListener('click', async () => {
+async function startScanner() {
   if (!sheetId) {
     setFlash('请先挂载', 'err');
-    return;
+    return false;
   }
   if (!window.isSecureContext) {
     setFlash('请用 HTTPS（如 GitHub Pages）打开本页', 'err');
-    return;
+    return false;
   }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     setFlash('本浏览器无摄像头 API', 'err');
-    return;
+    return false;
   }
   if (!window.Html5Qrcode) {
     setFlash('扫码库未加载', 'err');
-    return;
+    return false;
+  }
+  if (scanner) {
+    await stopScanner();
   }
   scanner = new Html5Qrcode('reader');
-  el.btnStart.disabled = true;
-  el.btnStop.disabled = false;
   latchedCode = '';
+  setPaused(false);
   try {
     const formats = window.Html5QrcodeSupportedFormats
       ? [
@@ -332,25 +253,116 @@ el.btnStart.addEventListener('click', async () => {
       video.muted = true;
     }
     setFlash('请对准条码', '');
+    return true;
   } catch (err) {
     const msg = String(err && err.message ? err.message : err);
     setFlash('无法启动摄像头：' + msg, 'err');
-    el.btnStart.disabled = false;
-    el.btnStop.disabled = true;
     scanner = null;
+    setPaused(true);
+    return false;
+  }
+}
+
+el.apiUrl.value = cfg.apiUrl || window.RECEIVING_API_URL || '';
+fillBatches();
+el.batchSelect.addEventListener('change', syncCustomVisibility);
+
+el.btnConnect.addEventListener('click', async () => {
+  el.btnConnect.disabled = true;
+  setFlash('挂载中…', 'wait');
+  latchedCode = '';
+  try {
+    const sheetUrl = selectedSheetUrl();
+    if (!sheetUrl) {
+      setFlash('请选择有表链接的批次，或填写自定义链接', 'err');
+      return;
+    }
+    const data = await api({ action: 'connect', sheetUrl });
+    if (!data.ok) {
+      const detail = (data.errors || [])
+        .map((e) => {
+          if (e.type === '非法状态') return `行${e.row} ${e.code} 状态=${e.value}`;
+          if (e.type === '重复单号') return `重复 ${e.code} 行${(e.rows || []).join(',')}`;
+          return JSON.stringify(e);
+        })
+        .join('；');
+      setFlash(data.error + (detail ? '：' + detail : ''), 'err');
+      sheetId = null;
+      leaveScanScreen();
+      return;
+    }
+    sheetId = data.sheetId;
+    sheetTitle = data.sheetTitle || '已挂载';
+    localState = {
+      lines: (data.lines || []).map((l) => ({
+        code: l.code,
+        status: l.status === '已收' ? '已收' : '未收',
+      })),
+    };
+    enterScanScreen();
+    setFlash('开摄中…', 'wait');
+    const ok = await startScanner();
+    if (!ok) {
+      setFlash('挂载成功，但摄像头未开。点「继续扫码」', 'err');
+    }
+  } catch (err) {
+    setFlash(String(err.message || err), 'err');
+  } finally {
+    el.btnConnect.disabled = false;
   }
 });
 
-el.btnStop.addEventListener('click', async () => {
-  if (scanner) {
-    try {
-      await scanner.stop();
-      await scanner.clear();
-    } catch (_) {}
-    scanner = null;
-  }
-  el.btnStart.disabled = !sheetId;
-  el.btnStop.disabled = true;
+el.btnSwapBatch.addEventListener('click', async () => {
+  await stopScanner();
+  sheetId = null;
+  sheetTitle = '';
+  localState = { lines: [] };
   latchedCode = '';
-  setFlash('已停止扫码', '');
+  leaveScanScreen();
+  setFlash('请重新选择批次并挂载', '');
+});
+
+function onScan(decoded) {
+  const now = Date.now();
+  if (now < coolingUntil) return;
+  if (!sheetId) return;
+
+  const planned = planScan(latchedCode, decoded);
+  if (!planned.code) return;
+
+  if (!planned.callApi) {
+    showOutcome('新已收', planned.code);
+    return;
+  }
+
+  latchedCode = '';
+  const result = applyScan(localState, planned.code);
+  localState = result.state;
+  refreshStatsUi();
+
+  if (result.outcome === '忽略') return;
+
+  showOutcome(result.outcome, result.code);
+
+  if (result.outcome === '新已收') {
+    latchedCode = result.code;
+    coolingUntil = Date.now() + COOLDOWN_MS;
+    void persistNewReceive(result.code);
+  } else if (result.outcome === '已收过') {
+    coolingUntil = Date.now() + COOLDOWN_MS;
+  }
+}
+
+el.btnStop.addEventListener('click', async () => {
+  await stopScanner();
+  setFlash('已停止\n点「继续扫码」恢复', '');
+});
+
+el.btnResume.addEventListener('click', async () => {
+  el.btnResume.disabled = true;
+  try {
+    await startScanner();
+  } finally {
+    el.btnResume.disabled = false;
+  }
 });

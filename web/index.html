@@ -5,79 +5,223 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>收货扫码</title>
   <style>
-    :root { color-scheme: light; }
+    :root {
+      color-scheme: dark;
+      --ink: #f5f5f5;
+      --bg: #111111;
+      --surface: #1a1a1a;
+      --surface-raised: #222222;
+      --border: #444444;
+      --border-subtle: #333333;
+      --action: #22aa66;
+      --flash-ok: #1b5e20;
+      --flash-dup: #e65100;
+      --flash-miss: #455a64;
+      --flash-err: #b71c1c;
+      --flash-wait: #1565c0;
+      --control-secondary: #333333;
+      --space-xs: 8px;
+      --space-sm: 10px;
+      --space-md: 12px;
+      --space-lg: 16px;
+      --radius-control: 8px;
+      --tap: 48px;
+    }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: system-ui, sans-serif;
-      background: #111;
-      color: #f5f5f5;
+      background: var(--bg);
+      color: var(--ink);
       min-height: 100dvh;
+      padding-bottom: env(safe-area-inset-bottom, 0);
     }
-    header { padding: 10px 16px; background: #1a1a1a; }
+    header {
+      padding: var(--space-sm) var(--space-lg);
+      padding-top: max(var(--space-sm), env(safe-area-inset-top, 0px));
+      background: var(--surface);
+    }
     header h1 { margin: 0; font-size: 1rem; font-weight: 600; }
+    body.scanning header { display: none; }
+
     #session-bar {
       display: none;
-      padding: 10px 16px;
-      background: #222;
-      border-bottom: 1px solid #333;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
+      padding: var(--space-sm) var(--space-lg);
+      padding-top: max(var(--space-sm), env(safe-area-inset-top, 0px));
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-subtle);
+      gap: var(--space-xs);
+      align-items: baseline;
     }
     #session-bar.visible { display: flex; }
-    #sessionTitle { flex: 1; font-weight: 600; font-size: 0.95rem; min-width: 0; word-break: break-all; }
-    #sessionStats { font-size: 0.9rem; opacity: 0.9; white-space: nowrap; }
-    #btnSwapBatch {
-      width: auto;
-      margin: 0;
-      padding: 8px 12px;
-      font-size: 0.85rem;
-      background: #444;
-      border-color: #555;
+    #sessionTitle {
+      flex: 1;
+      font-weight: 600;
+      font-size: 1rem;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
-    .panel { padding: 12px 16px; }
-    label { display: block; font-size: 0.85rem; opacity: 0.8; margin-bottom: 4px; }
+    #sessionStats {
+      font-size: 1rem;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .panel { padding: var(--space-md) var(--space-lg); }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: #d0d0d0;
+      margin-bottom: 4px;
+    }
     input, button, select {
       font: inherit;
       width: 100%;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid #444;
-      background: #222;
+      min-height: var(--tap);
+      padding: var(--space-md);
+      border-radius: var(--radius-control);
+      border: 1px solid var(--border);
+      background: var(--surface-raised);
       color: inherit;
     }
-    button { margin-top: 8px; background: #2a6; border-color: #2a6; color: #fff; font-weight: 600; }
-    button.secondary { background: #333; border-color: #555; }
+    button {
+      margin-top: var(--space-xs);
+      background: var(--action);
+      border-color: var(--action);
+      color: #fff;
+      font-weight: 600;
+    }
+    button.secondary {
+      background: var(--control-secondary);
+      border-color: #555;
+      color: var(--ink);
+    }
     button:disabled { opacity: 0.5; }
+    button:focus-visible,
+    select:focus-visible,
+    input:focus-visible {
+      outline: 2px solid var(--ink);
+      outline-offset: 2px;
+    }
+
+    /* 仓口色块：全宽贴边 slab */
     #flash {
-      margin: 12px 16px;
-      padding: 28px 16px;
-      border-radius: 12px;
+      margin: 0;
+      padding: 32px var(--space-lg);
+      border-radius: 0;
       text-align: center;
-      font-size: 1.75rem;
+      font-size: 2rem;
       font-weight: 700;
-      min-height: 100px;
+      line-height: 1.2;
+      min-height: 28dvh;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #222;
+      background: var(--surface-raised);
       white-space: pre-line;
+      transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1);
     }
-    #flash.ok { background: #1b5e20; }
-    #flash.dup { background: #e65100; }
-    #flash.miss { background: #37474f; }
-    #flash.err { background: #b71c1c; }
-    #flash.wait { background: #1565c0; }
-    #reader { width: 100%; margin: 0 auto; }
-    #pending { padding: 8px 16px 24px; font-size: 0.9rem; }
-    #pending details { background: #1a1a1a; padding: 8px 12px; border-radius: 8px; }
-    #pending ul { margin: 8px 0 0; padding-left: 1.2em; max-height: 120px; overflow: auto; }
-    .hint { font-size: 0.8rem; opacity: 0.65; margin-top: 8px; }
-    .row { display: flex; gap: 8px; padding: 0 16px 12px; }
+    body:not(.scanning) #flash {
+      margin: var(--space-md) var(--space-lg);
+      border-radius: 12px;
+      min-height: 100px;
+    }
+    #flash.ok { background: var(--flash-ok); }
+    #flash.dup { background: var(--flash-dup); }
+    #flash.miss { background: var(--flash-miss); }
+    #flash.err { background: var(--flash-err); }
+    #flash.wait { background: var(--flash-wait); }
+
+    #reader {
+      width: 100%;
+      margin: 0 auto;
+      background: #000;
+    }
+    body.scanning #reader {
+      min-height: 32dvh;
+    }
+    body.scanning #reader video {
+      width: 100% !important;
+      max-height: 40dvh;
+      object-fit: cover;
+    }
+
+    /* 拇指区底栏 */
+    #dock {
+      display: none;
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
+      padding: var(--space-md) var(--space-lg);
+      padding-bottom: max(var(--space-md), env(safe-area-inset-bottom, 0px));
+      background: var(--surface);
+      border-top: 1px solid var(--border-subtle);
+      gap: var(--space-xs);
+      flex-direction: column;
+    }
+    body.scanning #dock { display: flex; }
+    #dock .dock-row {
+      display: flex;
+      gap: var(--space-xs);
+    }
+    #dock .dock-row button {
+      flex: 1;
+      margin-top: 0;
+      min-height: var(--tap);
+    }
+    #btnResume { display: none; }
+    body.scanning.paused #btnResume { display: block; }
+    body.scanning.paused #btnStop { display: none; }
+
+    #pending {
+      padding: var(--space-xs) var(--space-lg) var(--space-lg);
+      font-size: 1rem;
+    }
+    body.scanning #pending {
+      padding-bottom: var(--space-xs);
+    }
+    #pending details {
+      background: var(--surface);
+      padding: var(--space-xs) var(--space-md);
+      border-radius: var(--radius-control);
+    }
+    #pending summary {
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+    #pending ul {
+      margin: var(--space-xs) 0 0;
+      padding-left: 1.2em;
+      max-height: 100px;
+      overflow: auto;
+    }
+    .hint {
+      font-size: 0.85rem;
+      color: #c8c8c8;
+      margin-top: var(--space-xs);
+    }
+    .row {
+      display: flex;
+      gap: var(--space-xs);
+      padding: 0 var(--space-lg) var(--space-md);
+    }
+    body.scanning .row.mount-only { display: none; }
     .row button { flex: 1; margin-top: 0; }
-    details.advanced { margin-top: 12px; font-size: 0.85rem; opacity: 0.85; }
+    details.advanced {
+      margin-top: var(--space-md);
+      font-size: 0.85rem;
+      color: #d0d0d0;
+    }
     body.scanning #mount-panel { display: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      #flash { transition: none; }
+    }
   </style>
 </head>
 <body>
@@ -86,7 +230,6 @@
   <div id="session-bar">
     <div id="sessionTitle">—</div>
     <div id="sessionStats">已收 — / —</div>
-    <button id="btnSwapBatch" type="button" class="secondary">换批</button>
   </div>
 
   <div class="panel" id="mount-panel">
@@ -96,21 +239,25 @@
       <label for="sheetUrl">自定义收货表链接或 ID</label>
       <input id="sheetUrl" type="text" placeholder="https://docs.google.com/spreadsheets/d/..." />
     </div>
-    <button id="btnConnect" type="button">挂载</button>
+    <button id="btnConnect" type="button">挂载并开扫</button>
     <details class="advanced">
       <summary>高级：Web App URL</summary>
       <label for="apiUrl" style="margin-top:8px">Apps Script Web App URL</label>
       <input id="apiUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" />
     </details>
-    <p class="hint">地址栏须为 <strong>https://</strong>。挂载后进入扫码主屏。</p>
+    <p class="hint">须用 https 打开。挂载成功后自动开摄像头。</p>
   </div>
 
   <div id="flash">等待挂载</div>
 
   <div id="reader"></div>
-  <div class="row">
-    <button id="btnStart" class="secondary" type="button" disabled>开始扫码</button>
-    <button id="btnStop" class="secondary" type="button" disabled>停止</button>
+
+  <div id="dock">
+    <div class="dock-row">
+      <button id="btnStop" class="secondary" type="button">停止</button>
+      <button id="btnResume" type="button">继续扫码</button>
+      <button id="btnSwapBatch" class="secondary" type="button">换批</button>
+    </div>
   </div>
 
   <div id="pending">

@@ -2,6 +2,8 @@
 
 一人用 iPhone 扫快递面单，对照一批应收单号确认是否到齐；Google 表格是本批收货的唯一台账。
 
+本文件只收**领域术语**。产品策略见 [PRODUCT.md](./PRODUCT.md)；视觉系统见 [DESIGN.md](./DESIGN.md)。勿把色值、圆角、布局写进本表。
+
 ## Language
 
 **收货表**：
