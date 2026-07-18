@@ -9,6 +9,7 @@
 var HEADER_CODE = '单号';
 var HEADER_STATUS = '状态';
 var HEADER_TIME = '扫码时间';
+var HEADER_DESC = '货品描述';
 
 function doGet(e) {
   return json_({
@@ -55,7 +56,7 @@ function connect_(sheetUrlOrId) {
     received: s.received,
     pending: s.pending,
     lines: validated.lines.map(function (l) {
-      return { code: l.code, status: l.status };
+      return { code: l.code, status: l.status, description: l.description || '' };
     }),
     pendingCodes: validated.lines
       .filter(function (l) {
@@ -79,7 +80,7 @@ function scan_(sheetId, rawCode) {
   }
 
   var state = { lines: validated.lines.map(function (l) {
-    return { code: l.code, status: l.status };
+    return { code: l.code, status: l.status, description: l.description || '' };
   }) };
   var result = applyScan_(state, rawCode);
 
@@ -170,21 +171,26 @@ function extractSheetId_(urlOrId) {
 }
 
 function ensureHeaders_(sheet) {
-  var r1 = sheet.getRange(1, 1, 1, 3).getValues()[0];
+  var r1 = sheet.getRange(1, 1, 1, 4).getValues()[0];
   var c0 = String(r1[0] || '').trim();
   var c1 = String(r1[1] || '').trim();
   var c2 = String(r1[2] || '').trim();
+  var dCell = String(r1[3] || '').trim();
   if (c0 !== HEADER_CODE || c1 !== HEADER_STATUS || c2 !== HEADER_TIME) {
     if (!c0 && !c1 && !c2) {
-      sheet.getRange(1, 1, 1, 3).setValues([[HEADER_CODE, HEADER_STATUS, HEADER_TIME]]);
+      sheet.getRange(1, 1, 1, 4).setValues([[HEADER_CODE, HEADER_STATUS, HEADER_TIME, HEADER_DESC]]);
       return;
     }
     if (c0 && c0 !== HEADER_CODE) {
       sheet.insertRowBefore(1);
-      sheet.getRange(1, 1, 1, 3).setValues([[HEADER_CODE, HEADER_STATUS, HEADER_TIME]]);
+      sheet.getRange(1, 1, 1, 4).setValues([[HEADER_CODE, HEADER_STATUS, HEADER_TIME, HEADER_DESC]]);
       return;
     }
-    sheet.getRange(1, 1, 1, 3).setValues([[HEADER_CODE, HEADER_STATUS, HEADER_TIME]]);
+    sheet.getRange(1, 1, 1, 4).setValues([[HEADER_CODE, HEADER_STATUS, HEADER_TIME, HEADER_DESC]]);
+    return;
+  }
+  if (dCell !== HEADER_DESC) {
+    sheet.getRange(1, 4).setValue(HEADER_DESC);
   }
 }
 
@@ -193,15 +199,18 @@ function validateSheet_(sheet) {
   if (last < 2) {
     return { ok: true, lines: [] };
   }
-  var values = sheet.getRange(2, 1, last, 3).getValues();
+  var values = sheet.getRange(2, 1, last, 4).getValues();
   var rows = [];
   for (var i = 0; i < values.length; i++) {
     var statusCell = values[i][1];
     var statusStr = statusCell === '' || statusCell === null ? '' : String(statusCell).trim();
+    var descCell = values[i][3];
+    var descStr = descCell === '' || descCell === null ? '' : String(descCell).trim();
     rows.push({
       row: i + 2,
       code: values[i][0],
       status: statusStr,
+      description: descStr,
     });
   }
   return validateMountRows_(rows);
@@ -233,6 +242,7 @@ function validateMountRows_(rows) {
       code: code,
       status: statusRaw === '已收' ? '已收' : '未收',
       row: row,
+      description: String(raw.description == null ? '' : raw.description).trim(),
     });
   }
 
@@ -267,7 +277,7 @@ function applyScan_(state, rawCode) {
   }
   var lines = state.lines.map(function (l, i) {
     if (i !== idx) return l;
-    return { code: l.code, status: '已收' };
+    return { code: l.code, status: '已收', description: l.description || '' };
   });
   return { state: { lines: lines }, outcome: '新已收', code: code };
 }

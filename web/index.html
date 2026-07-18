@@ -107,21 +107,21 @@
       outline-offset: 2px;
     }
 
-    /* 仓口色块：全宽贴边 slab */
+    /* 仓口色块：全宽贴边 slab + 三层文案 */
     #flash {
+      position: relative;
       margin: 0;
-      padding: 32px var(--space-lg);
+      padding: 28px var(--space-lg);
       border-radius: 0;
       text-align: center;
-      font-size: 2rem;
-      font-weight: 700;
-      line-height: 1.2;
       min-height: 28dvh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 8px;
       background: var(--surface-raised);
-      white-space: pre-line;
+      overflow: hidden;
       transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1);
     }
     body:not(.scanning) #flash {
@@ -134,6 +134,39 @@
     #flash.miss { background: var(--flash-miss); }
     #flash.err { background: var(--flash-err); }
     #flash.wait { background: var(--flash-wait); }
+    .flash-watermark {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(2.5rem, 12vw, 4rem);
+      font-weight: 800;
+      opacity: 0.45;
+      pointer-events: none;
+      color: var(--ink);
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .flash-primary {
+      position: relative;
+      z-index: 1;
+      font-size: 1.75rem;
+      font-weight: 700;
+      line-height: 1.35;
+      color: var(--ink);
+      word-break: break-word;
+      max-width: 100%;
+    }
+    .flash-secondary {
+      position: relative;
+      z-index: 1;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: rgba(245, 245, 245, 0.55);
+      word-break: break-all;
+    }
+    .flash-secondary:empty { display: none; }
 
     #reader {
       width: 100%;
@@ -148,6 +181,14 @@
       max-height: 40dvh;
       object-fit: cover;
     }
+    #scanHint {
+      display: none;
+      padding: 6px var(--space-lg);
+      font-size: 0.85rem;
+      color: #c8c8c8;
+      text-align: center;
+    }
+    body.scanning #scanHint { display: block; }
 
     /* 拇指区底栏 */
     #dock {
@@ -248,9 +289,14 @@
     <p class="hint">须用 https 打开。挂载成功后自动开摄像头。</p>
   </div>
 
-  <div id="flash">等待挂载</div>
+  <div id="flash">
+    <div class="flash-watermark" id="flashWatermark" aria-hidden="true"></div>
+    <div class="flash-primary" id="flashPrimary">等待挂载</div>
+    <div class="flash-secondary" id="flashSecondary"></div>
+  </div>
 
   <div id="reader"></div>
+  <p id="scanHint">横向对准条码；略拉开距离对焦更稳。褶皱处可换角度。</p>
 
   <div id="dock">
     <div class="dock-row">

@@ -1,3 +1,4 @@
+import { composeScanFlash } from './compose-scan-flash.js';
 import { planScan } from './scan-feedback.js';
 import { applyScan, revertReceived, stats } from './scan-outcome.js';
 
@@ -15,6 +16,9 @@ const el = {
   btnResume: document.getElementById('btnResume'),
   btnSwapBatch: document.getElementById('btnSwapBatch'),
   flash: document.getElementById('flash'),
+  flashWatermark: document.getElementById('flashWatermark'),
+  flashPrimary: document.getElementById('flashPrimary'),
+  flashSecondary: document.getElementById('flashSecondary'),
   pendingList: document.getElementById('pendingList'),
   sessionBar: document.getElementById('session-bar'),
   sessionTitle: document.getElementById('sessionTitle'),
@@ -31,13 +35,24 @@ let sheetTitle = '';
 let coolingUntil = 0;
 let scanner = null;
 let latchedCode = '';
-/** @type {{ lines: { code: string, status: string }[] }} */
+/** @type {{ lines: { code: string, status: string, description: string }[] }} */
 let localState = { lines: [] };
 const pendingWrites = new Set();
 
-function setFlash(text, kind) {
-  el.flash.textContent = text;
+function setFlashLayers({ watermark = '', primary, secondary = '', kind = '' }) {
+  el.flashWatermark.textContent = watermark;
+  el.flashPrimary.textContent = primary;
+  el.flashSecondary.textContent = secondary;
   el.flash.className = kind || '';
+}
+
+function setFlash(text, kind) {
+  setFlashLayers({ watermark: '', primary: text, secondary: '', kind: kind || '' });
+}
+
+function descriptionFor(code) {
+  const line = localState.lines.find((l) => l.code === code);
+  return line ? String(line.description || '') : '';
 }
 
 function pendingCodesFromState() {
@@ -143,18 +158,17 @@ function beep(freq, ms) {
 }
 
 function showOutcome(display, code) {
-  if (display === '新已收') {
-    setFlash('新已收\n' + code, 'ok');
-    beep(880, 120);
-  } else if (display === '已收过') {
-    setFlash('已收过\n' + code, 'dup');
-    beep(440, 80);
-  } else if (display === '不在清单') {
-    setFlash('不在清单\n' + code, 'miss');
-    beep(330, 60);
-  } else if (display) {
-    setFlash(String(display), '');
-  }
+  const composed = composeScanFlash(display, code, descriptionFor(code));
+  if (!composed.update) return;
+  setFlashLayers({
+    watermark: composed.watermark,
+    primary: composed.primary,
+    secondary: composed.secondary,
+    kind: composed.kind,
+  });
+  if (display === '新已收') beep(880, 120);
+  else if (display === '已收过') beep(440, 80);
+  else if (display === '不在清单') beep(330, 60);
 }
 
 function revertLocalReceived(code) {
@@ -237,7 +251,7 @@ async function startScanner() {
       { facingMode: 'environment' },
       {
         fps: SCAN_FPS,
-        qrbox: { width: 280, height: 160 },
+        qrbox: { width: 320, height: 120 },
         aspectRatio: 1.333,
         ...(formats ? { formatsToSupport: formats } : {}),
         experimentalFeatures: { useBarCodeDetectorIfSupported: true },
@@ -297,6 +311,7 @@ el.btnConnect.addEventListener('click', async () => {
       lines: (data.lines || []).map((l) => ({
         code: l.code,
         status: l.status === '已收' ? '已收' : '未收',
+        description: String(l.description || '').trim(),
       })),
     };
     enterScanScreen();

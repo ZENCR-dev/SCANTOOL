@@ -56,4 +56,14 @@ describe('挂载校验', () => {
     assert.equal(err.code, 'A1');
     assert.deepEqual(err.rows, [2, 3]);
   });
+
+  it('货品描述空与非空均透传，不拒挂载', () => {
+    const result = validateMountRows([
+      { row: 2, code: 'A1', status: '', description: '' },
+      { row: 3, code: 'B2', status: '未收', description: '  蓝牙耳机  ' },
+    ]);
+    assert.equal(result.ok, true);
+    assert.equal(result.lines[0].description, '');
+    assert.equal(result.lines[1].description, '蓝牙耳机');
+  });
 });

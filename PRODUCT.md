@@ -30,8 +30,8 @@ Must not look like a SaaS admin or analytics dashboard: card walls, sidebars, pu
 
 ## Design Principles
 
-1. **Feedback before chrome** — The first viewport exists to answer "what happened to this scan?"
-2. **Three outcomes, unmistakable** — 新已收, 已收过, and 不在清单 must stay visually distinct (color plus text).
+1. **Feedback before chrome** — The first viewport answers "what is this goods, and what was the scan result?" — 货品描述 first; outcome via color + 结果水印.
+2. **Three outcomes, unmistakable** — 新已收, 已收过, and 不在清单 stay distinct by slab color plus watermark text; 单号 stays low-contrast secondary when the line hits.
 3. **Scan screen is the job** — After mount, setup retreats; pending list stays a secondary fold.
 4. **Speed serves the floor** — Do not slow the aim → see-color loop with ornamental UI.
 5. **Tool disappears into the task** — Familiar, dense, and quiet; never perform like a branded marketing shell.

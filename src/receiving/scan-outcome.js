@@ -6,7 +6,7 @@
 /** @typedef {'未收' | '已收'} LineStatus */
 /** @typedef {'新已收' | '已收过' | '不在清单' | '忽略'} ScanOutcome */
 /**
- * @typedef {{ code: string, status: LineStatus }} ExpectedLine
+ * @typedef {{ code: string, status: LineStatus, description?: string }} ExpectedLine
  * @typedef {{ lines: ExpectedLine[] }} ReceivingState
  */
 

@@ -4,8 +4,8 @@
 
 /** @typedef {'未收' | '已收'} LineStatus */
 /**
- * @typedef {{ row: number, code: string, status: string }} RawMountRow
- * @typedef {{ code: string, status: LineStatus, row: number }} ExpectedLine
+ * @typedef {{ row: number, code: string, status: string, description?: string }} RawMountRow
+ * @typedef {{ code: string, status: LineStatus, row: number, description: string }} ExpectedLine
  * @typedef {{ type: string, row?: number, rows?: number[], code?: string, value?: string }} MountError
  */
 
@@ -38,7 +38,8 @@ export function validateMountRows(rows) {
     }
 
     const status = /** @type {LineStatus} */ (statusRaw === '已收' ? '已收' : '未收');
-    lines.push({ code, status, row });
+    const description = String(raw.description ?? '').trim();
+    lines.push({ code, status, row, description });
   }
 
   for (const [code, rowsForCode] of codeRows) {

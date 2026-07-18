@@ -37,6 +37,21 @@ typography:
     fontSize: "2rem"
     fontWeight: 700
     lineHeight: 1.2
+  flash-primary:
+    fontFamily: "system-ui, sans-serif"
+    fontSize: "1.75rem"
+    fontWeight: 700
+    lineHeight: 1.35
+  flash-watermark:
+    fontFamily: "system-ui, sans-serif"
+    fontSize: "clamp(2.5rem, 12vw, 4rem)"
+    fontWeight: 800
+    lineHeight: 1
+  flash-secondary:
+    fontFamily: "system-ui, sans-serif"
+    fontSize: "0.85rem"
+    fontWeight: 500
+    lineHeight: 1.3
 rounded:
   control: "8px"
   flash: "12px"
@@ -135,13 +150,15 @@ Semantic warehouse palette: neutrals carry the shell; saturated slabs carry scan
 **Body Font:** system-ui (with sans-serif fallback)  
 **Label/Mono Font:** same stack (no mono requirement)
 
-**Character:** One utilitarian sans. Hierarchy is weight and size only — title ≈1rem/600, flash ≈2rem/700, labels ≈0.85rem.
+**Character:** One utilitarian sans. Hierarchy is weight and size only — title ≈1rem/600, flash layers as below, labels ≈0.85rem.
 
 ### Hierarchy
 - **Title** (600, 1rem): App header “收货扫码”; session sheet name.
 - **Body** (400, ~1rem): Stats, lists, hints (hints must stay readable — avoid washed gray on dark).
 - **Label** (400, 0.85rem): Field labels, compact controls (换批).
-- **Flash** (700, 2rem): Outcome headline + code on the status slab.
+- **Flash primary** (700, 1.75rem): 货品描述 (or miss = scanned code) on the status slab.
+- **Flash watermark** (800, clamp 2.5–4rem, ~45% opacity): 结果词 behind primary.
+- **Flash secondary** (500, 0.85rem, low contrast): 单号 under primary when present.
 
 ### Named Rules
 **The No Display Face Rule.** Never introduce a decorative or marketing typeface. system-ui only unless PRODUCT.md changes.
@@ -179,14 +196,8 @@ Chunky, full-bleed, undelicate — big tap targets for gloved-or-rushed thumbs.
 
 ### Navigation
 - **Mount screen:** Batch select + 「挂载并开扫」; advanced API under `<details>`
-- **Scan screen:** Compact session bar (title · 已收 x/y); mount hidden; bottom thumb dock (停止 / 继续扫码 / 换批)
-- No sidebar, no tab chrome, no ops console
-
-### Flash status slab (signature)
-- Scan mode: full-bleed edge-to-edge (no side margin, no radius), min-height ~28dvh, 2rem bold
-- Mount mode: inset rounded slab for pre-scan status
-- States: idle Raised Bay; `.ok` / `.dup` / `.miss` / `.err` / `.wait` map to flash-* colors
-- Always show outcome word + code when scanning
+- **Scan screen:** Compact session bar (title · 已收 x/y); mount hidden; bottom thumb dock (停止 / 继续扫码 / 换批); short scan hint under the reader while scanning
+- Always show outcome via watermark + primary (货品描述 or scanned code) when scanning hits
 
 ## 6. Do's and Don'ts
 
